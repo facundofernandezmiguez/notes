@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; height: 100vh; }
+    #editor {
+      width: 100%;
+      height: 100vh;
+      background: #000;
+      color: #0f0;
+      border: none;
+      outline: none;
+      padding: 12px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 14px;
+      resize: none;
+      tab-size: 2;
+    }
+  </style>
+</head>
+<body>
+  <textarea id="editor" spellcheck="false"></textarea>
+  <script>
+    const editor = document.getElementById('editor');
+    let saveTimeout;
+
+    async function saveCode() {
+      await fetch('/api/code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: editor.value })
+      });
+    }
+
+    async function loadCode() {
+      const res = await fetch('/api/code');
+      const data = await res.json();
+      editor.value = data.code || '';
+    }
+
+    // Auto-save on every change (debounced 1s)
+    editor.addEventListener('input', () => {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveCode, 1000);
+    });
+
+    // Tab key support
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + 2;
+      }
+    });
+
+    // Auto-clear every 60 seconds
+    setInterval(() => {
+      editor.value = '';
+      saveCode();
+    }, 60000);
+
+    // Load on startup
+    loadCode();
+  </script>
+</body>
+</html>
